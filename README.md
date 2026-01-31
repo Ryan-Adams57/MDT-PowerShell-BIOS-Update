@@ -30,6 +30,7 @@ BiosUpdate2.ps1: Multi-stage updates (for models requiring intermediate versions
 # Quick Setup
 
 Create folders: %DeployRoot%\Applications\Bios and Firmware Upgrade\Source\[Dell|HP|Lenovo]\[Model Name]
+
 For each model:
 
 Download BIOS update from vendor, rename to Bios1.exe
