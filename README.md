@@ -56,16 +56,16 @@ Add "Restart Computer"
 
 # Usage
 
-# Test mode (recommended first)
+Test mode (recommended first)
 .\BiosUpdate.ps1 -WhatIf
 
-# Run update
+Run update
 .\BiosUpdate.ps1
 
-# Multi-stage update
+Multi-stage update
 .\BiosUpdate2.ps1
 
-# Custom deployment path
+Custom deployment path
 .\BiosUpdate.ps1 -DeployRoot "E:\CustomDeployment"
 
 # How It Works
