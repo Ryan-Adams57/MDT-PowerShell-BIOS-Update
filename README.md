@@ -36,7 +36,7 @@ Save the file
 
 # Disclaimer
 
-These scripts are provided as-is without warranty. Always test in a lab environment before production deployment.
+These scripts are provided as-is. Always test in a lab environment before production deployment.
 
 # Additional Resources
 
