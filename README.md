@@ -1,7 +1,5 @@
 # MDT BIOS Update Scripts
 
-Overview
-
 Production-ready PowerShell scripts that automate BIOS updates for HP, Dell, and Lenovo systems during MDT deployments.
 
 BiosUpdate.ps1: Single-stage updates
