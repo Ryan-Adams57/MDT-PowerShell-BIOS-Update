@@ -36,7 +36,7 @@ Source\
 
 Download the BIOS update executable for that model and place it in the model folder.
 
-Rename the BIOS executable to
+Rename the BIOS executable to:
 
 Bios1.exe
 
