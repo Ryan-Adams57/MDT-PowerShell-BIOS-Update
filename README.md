@@ -97,7 +97,9 @@ Ensure Version1.txt contains only the version number with no extra spaces
 # Update fails
 
 Verify correct BIOS executable for model
+
 Ensure AC power (laptops)
+
 Check logs in C:\Logs\
 
 # Get system info:
