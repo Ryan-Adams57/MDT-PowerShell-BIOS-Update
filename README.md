@@ -18,7 +18,7 @@ Dell
 HP
 Lenovo
 
-# Step 2: Add BIOS Updates for Each Model
+Step 2: Add BIOS Updates for Each Model
 
 For Single-Stage Updates (BiosUpdate.ps1):
 
@@ -41,6 +41,9 @@ These scripts are provided as-is without warranty. Always test in a lab environm
 # Additional Resources
 
 Dell BIOS Downloads: https://www.dell.com/support
+
 HP BIOS Downloads: https://support.hp.com
+
 Lenovo BIOS Downloads: https://support.lenovo.com
+
 MDT Documentation: https://docs.microsoft.com/en-us/windows/deployment/deploy-windows-mdt/
