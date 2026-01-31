@@ -1,49 +1,107 @@
-# MDT-PowerShell-BIOS-Update
+# MDT BIOS Update Scripts
 
-This project provides a PowerShell-based solution for updating BIOS firmware during an MDT deployment. Unlike many scripts that only support a single model or manufacturer, this script supports HP, Dell, and Lenovo systems and works across multiple models.
+Overview
 
-# Setup Instructions
+Production-ready PowerShell scripts that automate BIOS updates for HP, Dell, and Lenovo systems during MDT deployments.
 
-Step 1: Create Folder Structure
+BiosUpdate.ps1: Single-stage updates
 
-Navigate to your MDT Deployment Share (e.g., D:\DeploymentShare)
+BiosUpdate2.ps1: Multi-stage updates (for models requiring intermediate versions)
 
-Create the following folder:
+# Folder Structure
 
-Applications\Bios and Firmware Upgrade\Source
+%DeployRoot%\Applications\Bios and Firmware Upgrade\
+│
+├── BiosUpdate.ps1
+├── BiosUpdate2.ps1
+│
+└── Source\
+    ├── Dell\
+    │   └── [Model Name]\
+    │       ├── Bios1.exe
+    │       ├── Version1.txt
+    │       ├── Bios2.exe      (optional, for multi-stage)
+    │       └── Version2.txt   (optional, for multi-stage)
+    ├── HP\
+    │   └── [Model Name]\
+    │       └── (same as above)
+    └── Lenovo\
+        └── [Model Name]\
+            └── (same as above)
 
-Inside the Source folder, create three manufacturer folders:
+# Quick Setup
 
-Dell
-HP
-Lenovo
+Create folders: %DeployRoot%\Applications\Bios and Firmware Upgrade\Source\[Dell|HP|Lenovo]\[Model Name]
+For each model:
 
-Step 2: Add BIOS Updates for Each Model
+Download BIOS update from vendor, rename to Bios1.exe
 
-For Single-Stage Updates (BiosUpdate.ps1):
+Create Version1.txt with target version number (e.g., "A18")
 
-Create a folder with the exact model name (e.g., "Latitude E6420") inside the appropriate manufacturer folder
+For multi-stage: Add Bios2.exe and Version2.txt for final version
 
-Download the BIOS update executable from the vendor's website
 
-Rename the executable to Bios1.exe
+Copy scripts to %DeployRoot%\Applications\Bios and Firmware Upgrade\
 
-Create a text file named Version1.txt
+Add to MDT Task Sequence (State Restore phase):
 
-In Version1.txt, enter ONLY the target BIOS version (e.g., "A18")
+Add "Run PowerShell Script": %DeployRoot%\Applications\Bios and Firmware Upgrade\BiosUpdate.ps1
 
-Save the file
+Add "Restart Computer"
 
-# Disclaimer
+For multi-stage: Add another "Run PowerShell Script" with BiosUpdate2.ps1
 
-These scripts are provided as-is. Always test in a lab environment before production deployment.
+Add condition: Task Sequence Variable Run2nd equals yes
 
-# Additional Resources
+Add "Restart Computer"
 
-Dell BIOS Downloads: https://www.dell.com/support
+# Usage
 
-HP BIOS Downloads: https://support.hp.com
+# Test mode (recommended first)
+.\BiosUpdate.ps1 -WhatIf
 
-Lenovo BIOS Downloads: https://support.lenovo.com
+# Run update
+.\BiosUpdate.ps1
 
-MDT Documentation: https://docs.microsoft.com/en-us/windows/deployment/deploy-windows-mdt/
+# Multi-stage update
+.\BiosUpdate2.ps1
+
+# Custom deployment path
+.\BiosUpdate.ps1 -DeployRoot "E:\CustomDeployment"
+
+# How It Works
+
+Both scripts detect manufacturer/model from WMI, compare current BIOS version to target version, and only update if needed. Updates use manufacturer-specific silent parameters.
+
+BiosUpdate2.ps1 handles multi-stage updates with automatic retry logic (up to 3 attempts) for Dell systems.
+
+Logs are written to C:\Logs\BiosUpdate.log and C:\Logs\BiosUpdate2.log
+
+# Manufacturer Notes
+
+Dell: Exit codes 0/2, uses /s /f parameters, includes retry logic
+
+HP: Exit codes 0/3010, uses /s /f /a parameters
+
+Lenovo: Exit codes 0/3010, uses /silent /sccm parameters
+
+# Troubleshooting
+
+"BIOS update package not found"
+
+Check model name matches exactly: (Get-CimInstance Win32_ComputerSystem).Model
+
+"Version file is empty"
+
+Ensure Version1.txt contains only the version number with no extra spaces
+
+# Update fails
+
+Verify correct BIOS executable for model
+Ensure AC power (laptops)
+Check logs in C:\Logs\
+
+# Get system info:
+
+Get-CimInstance Win32_ComputerSystem | Select Manufacturer, Model
+Get-CimInstance Win32_BIOS | Select SMBIOSBIOSVersion
