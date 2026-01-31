@@ -19,7 +19,9 @@ Source
 Inside the Source folder, create the following manufacturer folders:
 
 Dell
+
 HP
+
 Lenovo
 
 # Model-Specific BIOS Setup
