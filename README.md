@@ -1,108 +1,115 @@
-# MDT BIOS Update Scripts
+# MDT PowerShell BIOS Update
 
-Production-ready PowerShell scripts that automate BIOS updates for HP, Dell, and Lenovo systems during MDT deployments.
+This project provides a PowerShell-based solution for updating BIOS firmware during an MDT deployment.
 
-BiosUpdate.ps1: Single-stage updates
+Unlike many scripts that only support a single model or manufacturer, this script supports HP, Dell, and Lenovo systems and works across multiple models.
 
-BiosUpdate2.ps1: Multi-stage updates (for models requiring intermediate versions)
+# Folder Structure Setup:
 
-# Folder Structure
+Place the PowerShell script (BiosUpdate.ps1) in the Applications folder within your MDT deployment share.
 
-%DeployRoot%\Applications\Bios and Firmware Upgrade\
-│
-├── BiosUpdate.ps1
-├── BiosUpdate2.ps1
-│
-└── Source\
-    ├── Dell\
-    │   └── [Model Name]\
-    │       ├── Bios1.exe
-    │       ├── Version1.txt
-    │       ├── Bios2.exe      (optional, for multi-stage)
-    │       └── Version2.txt   (optional, for multi-stage)
-    ├── HP\
-    │   └── [Model Name]\
-    │       └── (same as above)
-    └── Lenovo\
-        └── [Model Name]\
-            └── (same as above)
+Name the application folder:
 
-# Quick Setup
+Bios and Firmware Upgrade
 
-Create folders: %DeployRoot%\Applications\Bios and Firmware Upgrade\Source\[Dell|HP|Lenovo]\[Model Name]
+Inside this folder, create a subfolder named:
 
-For each model:
+Source
 
-Download BIOS update from vendor, rename to Bios1.exe
+Inside the Source folder, create the following manufacturer folders:
 
-Create Version1.txt with target version number (e.g., "A18")
+Dell
+HP
+Lenovo
 
-For multi-stage: Add Bios2.exe and Version2.txt for final version
+# Model-Specific BIOS Setup
 
+For each model you want to support:
 
-Copy scripts to %DeployRoot%\Applications\Bios and Firmware Upgrade\
+Create a model-specific folder inside the appropriate manufacturer folder.
 
-Add to MDT Task Sequence (State Restore phase):
+Example (Dell Latitude E6420):
 
-Add "Run PowerShell Script": %DeployRoot%\Applications\Bios and Firmware Upgrade\BiosUpdate.ps1
+Source\
+  Dell\
+    Latitude E6420\
 
-Add "Restart Computer"
+Download the BIOS update executable for that model and place it in the model folder.
 
-For multi-stage: Add another "Run PowerShell Script" with BiosUpdate2.ps1
+Rename the BIOS executable to
 
-Add condition: Task Sequence Variable Run2nd equals yes
+Bios1.exe
 
-Add "Restart Computer"
+Take note of the BIOS version contained in the update (for example, A18).
 
-# Usage
+# BIOS Version File
 
-Test mode (recommended first)
-.\BiosUpdate.ps1 -WhatIf
+In the same model folder, create a text file.
 
-Run update
-.\BiosUpdate.ps1
+Inside the file, enter the BIOS version number (for example):
 
-Multi-stage update
-.\BiosUpdate2.ps1
+A18
 
-Custom deployment path
-.\BiosUpdate.ps1 -DeployRoot "E:\CustomDeployment"
+Save the file as:
 
-# How It Works
+Version1
 
-Both scripts detect manufacturer/model from WMI, compare current BIOS version to target version, and only update if needed. Updates use manufacturer-specific silent parameters.
+The script will read this file and compare it to the currently installed BIOS version to determine whether an update is required.
 
-BiosUpdate2.ps1 handles multi-stage updates with automatic retry logic (up to 3 attempts) for Dell systems.
+# MDT Task Sequence Configuration (Single BIOS Update)
 
-Logs are written to C:\Logs\BiosUpdate.log and C:\Logs\BiosUpdate2.log
+In your MDT Task Sequence, navigate to the State Restore section.
 
-# Manufacturer Notes
+Add a Run PowerShell Script step.
 
-Dell: Exit codes 0/2, uses /s /f parameters, includes retry logic
+For the PowerShell script path, enter:
 
-HP: Exit codes 0/3010, uses /s /f /a parameters
+%DeployRoot%\Applications\Bios and Firmware Upgrade\BiosUpdate.ps1
 
-Lenovo: Exit codes 0/3010, uses /silent /sccm parameters
+Add a Restart Computer step immediately after the PowerShell step.
 
-# Troubleshooting
+This restart allows the BIOS update to apply.
 
-"BIOS update package not found"
+Click Apply to save the Task Sequence.
 
-Check model name matches exactly: (Get-CimInstance Win32_ComputerSystem).Model
+# Systems Requiring an Intermediate BIOS Update
 
-"Version file is empty"
+Some systems require an intermediate BIOS version before updating to the latest version. For these systems, a second script (BiosUpdate2.ps1) is used.
 
-Ensure Version1.txt contains only the version number with no extra spaces
+Folder Setup for Intermediate Updates
 
-# Update fails
+The existing Bios1.exe and Version1 represent the intermediate BIOS version.
 
-Verify correct BIOS executable for model
+Download the final BIOS version and place it in the same model folder.
 
-Ensure AC power (laptops)
+Rename the final BIOS executable to:
 
-Check logs in C:\Logs\
+Bios2.exe
 
-# Get system info:
+Create another text file containing the final BIOS version number and name it:
 
-Get-CimInstance Win32_ComputerSystem | Select Manufacturer, Model
-Get-CimInstance Win32_BIOS | Select SMBIOSBIOSVersion
+Version2
+
+# MDT Task Sequence Configuration (Second BIOS Update)
+
+Add another Run PowerShell Script step in the Task Sequence.
+
+Use the following script path:
+
+%DeployRoot%\Applications\Bios and Firmware Upgrade\BiosUpdate2.ps1
+
+In the Options tab, add a Task Sequence variable:
+
+Variable: Run2nd
+
+Value: yes
+
+Click Apply.
+
+# Notes
+
+Some Dell systems may require the BIOS update process to run more than once.
+
+The scripts are designed to handle these cases automatically.
+
+Ensure BIOS updates are tested thoroughly before deploying in production.
