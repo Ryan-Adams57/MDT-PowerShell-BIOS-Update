@@ -6,7 +6,7 @@
     This script automatically detects the manufacturer and model of the system,
     then applies the appropriate BIOS update if a newer version is available.
     Supports HP, Dell, and Lenovo systems with centralized BIOS update management.
-    
+
     The script compares the current BIOS version against the target version stored
     in a text file, and only applies the update if necessary.
 
@@ -81,12 +81,12 @@ function Write-Log {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$Message,
-        
+
         [Parameter(Mandatory = $false)]
         [ValidateSet('Info', 'Warning', 'Error', 'Success')]
         [string]$Level = 'Info'
     )
-    
+
     begin {
         # Ensure log directory exists
         if (-not (Test-Path -Path $script:LogDirectory)) {
@@ -98,7 +98,7 @@ function Write-Log {
                 return
             }
         }
-        
+
         # Rotate log file if it exceeds max size
         if (Test-Path -Path $script:LogFile) {
             $logSize = (Get-Item -Path $script:LogFile).Length / 1MB
@@ -108,11 +108,11 @@ function Write-Log {
             }
         }
     }
-    
+
     process {
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $logEntry = "[$timestamp] [$Level] $Message"
-        
+
         # Console output with color coding
         switch ($Level) {
             'Error'   { Write-Host $logEntry -ForegroundColor Red }
@@ -120,7 +120,7 @@ function Write-Log {
             'Success' { Write-Host $logEntry -ForegroundColor Green }
             default   { Write-Host $logEntry -ForegroundColor White }
         }
-        
+
         # File output
         try {
             Add-Content -Path $script:LogFile -Value $logEntry -ErrorAction Stop
@@ -141,10 +141,10 @@ function Get-SystemManufacturer {
     [CmdletBinding()]
     [OutputType([string])]
     param()
-    
+
     try {
         $manufacturer = (Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop).Manufacturer
-        
+
         # Normalize manufacturer names
         switch -Wildcard ($manufacturer) {
             '*Dell*'   { return 'Dell' }
@@ -168,15 +168,15 @@ function Get-SystemModel {
     [CmdletBinding()]
     [OutputType([string])]
     param()
-    
+
     try {
         $model = (Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop).Model
-        
+
         # Clean up model name for Lenovo (remove version info)
         if ($model -match '^(\d{4})') {
             $model = $Matches[1]
         }
-        
+
         return $model.Trim()
     }
     catch {
@@ -193,7 +193,7 @@ function Get-CurrentBiosVersion {
     [CmdletBinding()]
     [OutputType([string])]
     param()
-    
+
     try {
         $biosVersion = (Get-CimInstance -ClassName Win32_BIOS -ErrorAction Stop).SMBIOSBIOSVersion
         return $biosVersion.Trim()
@@ -216,18 +216,18 @@ function Get-TargetBiosVersion {
         [ValidateNotNullOrEmpty()]
         [string]$VersionFilePath
     )
-    
+
     try {
         if (-not (Test-Path -Path $VersionFilePath)) {
             throw "Version file not found: $VersionFilePath"
         }
-        
+
         $version = (Get-Content -Path $VersionFilePath -ErrorAction Stop)[0].Trim()
-        
+
         if ([string]::IsNullOrWhiteSpace($version)) {
             throw "Version file is empty: $VersionFilePath"
         }
-        
+
         return $version
     }
     catch {
@@ -247,22 +247,22 @@ function Test-BiosUpdateRequired {
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$CurrentVersion,
-        
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$TargetVersion
     )
-    
+
     # Case-insensitive comparison
     $updateRequired = $CurrentVersion -ne $TargetVersion
-    
+
     if ($updateRequired) {
         Write-Log -Message "BIOS update required: Current=$CurrentVersion, Target=$TargetVersion" -Level Info
     }
     else {
         Write-Log -Message "BIOS is current: Version=$CurrentVersion" -Level Success
     }
-    
+
     return $updateRequired
 }
 
@@ -277,42 +277,42 @@ function Invoke-BiosUpdate {
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$BiosExePath,
-        
+
         [Parameter(Mandatory = $true)]
         [ValidateSet('Dell', 'HP', 'Lenovo')]
         [string]$Manufacturer
     )
-    
+
     try {
         if (-not (Test-Path -Path $BiosExePath)) {
             throw "BIOS update file not found: $BiosExePath"
         }
-        
+
         # Define manufacturer-specific update arguments
         $updateArgs = switch ($Manufacturer) {
             'Dell'   { '/s /f /l="C:\Logs\Dell_BIOS_Update.log"' }
             'HP'     { '/s /f /a' }
             'Lenovo' { '/silent /sccm' }
         }
-        
+
         Write-Log -Message "Executing BIOS update: $BiosExePath $updateArgs" -Level Info
-        
+
         if ($PSCmdlet.ShouldProcess($BiosExePath, "Execute BIOS Update")) {
             $process = Start-Process -FilePath $BiosExePath -ArgumentList $updateArgs -Wait -PassThru -NoNewWindow
-            
+
             $exitCode = $process.ExitCode
             Write-Log -Message "BIOS update process completed with exit code: $exitCode" -Level Info
-            
+
             # Check for successful exit codes (manufacturer-specific)
             $successCodes = switch ($Manufacturer) {
                 'Dell'   { @(0, 2) }  # 0=Success, 2=Success but reboot required
                 'HP'     { @(0, 3010) }  # 0=Success, 3010=Success but reboot required
                 'Lenovo' { @(0, 3010) }  # 0=Success, 3010=Success but reboot required
             }
-            
+
             if ($exitCode -in $successCodes) {
                 Write-Log -Message "BIOS update completed successfully" -Level Success
-                
+
                 # Set MDT Task Sequence variable for potential second update
                 try {
                     $tsenv = New-Object -ComObject Microsoft.SMS.TSEnvironment
@@ -322,7 +322,7 @@ function Invoke-BiosUpdate {
                 catch {
                     Write-Log -Message "Not running in MDT Task Sequence environment or failed to set variable: $_" -Level Warning
                 }
-                
+
                 return $true
             }
             else {
@@ -350,58 +350,58 @@ function Start-BiosUpdateProcess {
     #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
-    
+
     try {
         Write-Log -Message "========== BIOS Update Script Started ==========" -Level Info
         Write-Log -Message "Script Version: 1.0" -Level Info
         Write-Log -Message "Execution User: $env:USERNAME" -Level Info
         Write-Log -Message "Computer Name: $env:COMPUTERNAME" -Level Info
-        
+
         # Validate DeployRoot parameter
         if ([string]::IsNullOrWhiteSpace($DeployRoot)) {
             throw "DeployRoot parameter is not set. Ensure MDT environment variable is configured or provide the parameter."
         }
-        
+
         Write-Log -Message "Deployment Root: $DeployRoot" -Level Info
-        
+
         # Get system information
         Write-Log -Message "Detecting system information..." -Level Info
         $manufacturer = Get-SystemManufacturer
         $model = Get-SystemModel
         $currentBiosVersion = Get-CurrentBiosVersion
-        
+
         Write-Log -Message "Manufacturer: $manufacturer" -Level Info
         Write-Log -Message "Model: $model" -Level Info
         Write-Log -Message "Current BIOS Version: $currentBiosVersion" -Level Info
-        
+
         # Validate manufacturer is supported
         if ($manufacturer -notin @('Dell', 'HP', 'Lenovo')) {
             throw "Unsupported manufacturer: $manufacturer. This script supports Dell, HP, and Lenovo only."
         }
-        
+
         # Construct paths to BIOS update files
         $biosBasePath = Join-Path -Path $DeployRoot -ChildPath "Applications\$script:ApplicationFolder\Source\$manufacturer\$model"
         $biosExePath = Join-Path -Path $biosBasePath -ChildPath 'Bios1.exe'
         $versionFilePath = Join-Path -Path $biosBasePath -ChildPath 'Version1.txt'
-        
+
         Write-Log -Message "BIOS Base Path: $biosBasePath" -Level Info
-        
+
         # Validate BIOS update package exists
         if (-not (Test-Path -Path $biosBasePath)) {
             throw "BIOS update package not found for $manufacturer $model at: $biosBasePath"
         }
-        
+
         # Get target BIOS version
         $targetBiosVersion = Get-TargetBiosVersion -VersionFilePath $versionFilePath
         Write-Log -Message "Target BIOS Version: $targetBiosVersion" -Level Info
-        
+
         # Check if update is required
         $updateRequired = Test-BiosUpdateRequired -CurrentVersion $currentBiosVersion -TargetVersion $targetBiosVersion
-        
+
         if ($updateRequired) {
             Write-Log -Message "Proceeding with BIOS update..." -Level Info
             $updateSuccess = Invoke-BiosUpdate -BiosExePath $biosExePath -Manufacturer $manufacturer
-            
+
             if ($updateSuccess) {
                 Write-Log -Message "BIOS update process completed successfully. System restart required." -Level Success
                 exit 0
